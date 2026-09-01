@@ -1,0 +1,434 @@
+:root {
+  color-scheme: light;
+  --ink: #1d2433;
+  --muted: #667085;
+  --line: #d7dee8;
+  --paper: #fbfcff;
+  --panel: #ffffff;
+  --accent: #16736f;
+  --accent-dark: #105552;
+  --warm: #f2b84b;
+  --rose: #d95d74;
+  --ok: #1d8b5b;
+  --shadow: 0 20px 60px rgba(38, 55, 77, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
+  background:
+    linear-gradient(120deg, rgba(22, 115, 111, 0.10), rgba(242, 184, 75, 0.12)),
+    #edf3f5;
+}
+
+button {
+  font: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.grade-screen {
+  width: min(760px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 32px 0;
+  display: grid;
+  place-items: center;
+}
+
+.grade-panel {
+  width: 100%;
+  padding: clamp(22px, 5vw, 44px);
+  border: 1px solid rgba(215, 222, 232, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.grade-lead {
+  margin: 14px 0 24px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.grade-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.grade-button {
+  min-height: 86px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.grade-button:hover,
+.grade-button:focus-visible {
+  border-color: var(--accent);
+  background: rgba(22, 115, 111, 0.08);
+}
+
+.app-shell {
+  width: min(1180px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 32px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.practice-panel,
+.side-panel {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(215, 222, 232, 0.9);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.practice-panel {
+  padding: clamp(20px, 4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.side-panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.topbar,
+.progress-row,
+.controls,
+.result-grid,
+.side-heading {
+  display: flex;
+  align-items: center;
+}
+
+.topbar {
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+h1,
+h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  line-height: 1;
+}
+
+h2 {
+  font-size: 1.35rem;
+}
+
+.score-card {
+  min-width: 104px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  text-align: center;
+}
+
+.score-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.score-card strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 1.45rem;
+}
+
+.progress-row {
+  gap: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.progress-track {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: #dce7ea;
+  overflow: hidden;
+}
+
+#progress-bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--warm));
+  transition: width 180ms ease;
+}
+
+.question-area {
+  padding: clamp(18px, 4vw, 34px);
+  min-height: 220px;
+  display: grid;
+  align-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.question-label,
+.result-label {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.sentence {
+  margin: 0;
+  font-size: clamp(1.8rem, 5.4vw, 4rem);
+  line-height: 1.55;
+  font-weight: 800;
+}
+
+.term,
+.kanji-speak {
+  padding: 0 0.12em;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font-weight: inherit;
+}
+
+.term {
+  border-bottom: 0.14em solid rgba(242, 184, 75, 0.7);
+}
+
+.kanji-speak {
+  border-bottom: 0.14em solid rgba(22, 115, 111, 0.28);
+}
+
+.term:focus-visible,
+.kanji-speak:focus-visible,
+.word-button:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgba(22, 115, 111, 0.35);
+  outline-offset: 3px;
+}
+
+.controls {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mic-monitor {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.level-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce7ea;
+}
+
+#level-bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--warm), var(--rose));
+  transition: width 80ms linear;
+}
+
+.primary-button,
+.ghost-button {
+  min-height: 48px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0 20px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.primary-button {
+  color: white;
+  background: var(--accent);
+}
+
+.primary-button.listening {
+  background: var(--rose);
+}
+
+.ghost-button {
+  color: var(--accent-dark);
+  border-color: var(--line);
+  background: white;
+}
+
+.mic-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+.result-grid {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.result-grid > div {
+  min-height: 130px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.recognized,
+.feedback {
+  margin: 0;
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
+.match {
+  color: var(--ok);
+  font-weight: 800;
+}
+
+.miss {
+  color: var(--rose);
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-thickness: 0.14em;
+}
+
+.side-heading {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.word-list {
+  display: grid;
+  gap: 10px;
+}
+
+.word-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  font-weight: 800;
+}
+
+.word-button.active {
+  border-color: var(--accent);
+  background: rgba(22, 115, 111, 0.09);
+}
+
+.meaning-box {
+  min-height: 140px;
+  padding: 16px;
+  border-left: 5px solid var(--warm);
+  border-radius: 8px;
+  background: #fff9eb;
+  line-height: 1.75;
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    width: min(100% - 20px, 680px);
+    padding: 10px 0;
+  }
+
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .side-panel {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .grade-buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grade-button {
+    min-height: 72px;
+    font-size: 1.25rem;
+  }
+
+  .practice-panel,
+  .side-panel {
+    padding: 16px;
+  }
+
+  .sentence {
+    font-size: clamp(1.45rem, 8.5vw, 2.4rem);
+  }
+
+  .primary-button,
+  .ghost-button {
+    width: 100%;
+  }
+
+  .mic-monitor {
+    grid-template-columns: 1fr;
+  }
+}

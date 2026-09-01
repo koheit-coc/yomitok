@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>よみトレ</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <section id="grade-screen" class="grade-screen" aria-labelledby="grade-title">
+      <div class="grade-panel">
+        <p class="eyebrow">小学1〜6年生</p>
+        <h1 id="grade-title">よみトレ</h1>
+        <p class="grade-lead">れんしゅうする学年をえらぼう。</p>
+        <div id="grade-buttons" class="grade-buttons" aria-label="学年選択"></div>
+      </div>
+    </section>
+
+    <main id="practice-screen" class="app-shell" hidden>
+      <section class="practice-panel" aria-labelledby="app-title">
+        <div class="topbar">
+          <div>
+            <p id="grade-label" class="eyebrow">小学6年生の漢字</p>
+            <h1 id="app-title">よみトレ</h1>
+          </div>
+          <div class="score-card" aria-live="polite">
+            <span>正答率</span>
+            <strong id="score">--%</strong>
+          </div>
+        </div>
+
+        <div class="progress-row">
+          <span id="question-count">1 / 10</span>
+          <div class="progress-track" aria-hidden="true">
+            <span id="progress-bar"></span>
+          </div>
+        </div>
+
+        <article class="question-area">
+          <p class="question-label">声に出して読もう</p>
+          <p id="sentence" class="sentence"></p>
+        </article>
+
+        <div class="controls" role="group" aria-label="音声認識の操作">
+          <button id="listen-button" class="primary-button" type="button">
+            <span class="mic-dot" aria-hidden="true"></span>
+            聞き取り開始
+          </button>
+          <button id="stop-button" class="ghost-button" type="button" disabled>読み終わった</button>
+          <button id="next-button" class="ghost-button" type="button">次の問題</button>
+          <button id="change-grade-button" class="ghost-button" type="button">学年を変える</button>
+        </div>
+
+        <div class="mic-monitor" aria-live="polite">
+          <span id="mic-status">マイク待機中</span>
+          <div class="level-track" aria-hidden="true">
+            <span id="level-bar"></span>
+          </div>
+        </div>
+
+        <section class="result-grid" aria-label="結果">
+          <div>
+            <p class="result-label">認識した読み</p>
+            <p id="recognized" class="recognized">まだ読んでいません</p>
+          </div>
+          <div>
+            <p class="result-label">フィードバック</p>
+            <p id="feedback" class="feedback">文章を読んだら、まちがえた所をここに表示します。</p>
+          </div>
+        </section>
+      </section>
+
+      <aside class="side-panel" aria-label="語句の意味">
+        <div class="side-heading">
+          <p class="eyebrow">タップで確認</p>
+          <h2>むずかしい語句</h2>
+        </div>
+        <div id="word-list" class="word-list"></div>
+        <div id="meaning-box" class="meaning-box">
+          語句をタップすると、意味がここに出ます。
+        </div>
+      </aside>
+    </main>
+
+    <script src="./app.js?v=20260829-1"></script>
+  </body>
+</html>
