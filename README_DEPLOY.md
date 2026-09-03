@@ -44,3 +44,6 @@ npm run deploy
 ```
 
 GitHub連携の Workers Builds を使う場合も、このリポジトリ構成と `wrangler.jsonc` をそのまま利用できます。
+
+
+Git command workflow test
