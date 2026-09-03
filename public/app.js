@@ -578,6 +578,8 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 const MOBILE_SPEECH_MODE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const USE_SERVER_TRANSCRIPTION = MOBILE_SPEECH_MODE;
 const TRANSCRIBE_ENDPOINT = "/api/transcribe";
+const MOBILE_SILENCE_STOP_MS = 2000;
+const MOBILE_MAX_RECORDING_MS = 30000;
 
 const TERM_READINGS = {
   山: "やま",
@@ -1178,13 +1180,13 @@ async function startMobileRecording() {
 
     setListeningUi(true);
     recognizedEl.textContent = "聞き取り中...";
-    feedbackEl.textContent = "読み終わったら「読み終わった」を押してください。";
+    feedbackEl.textContent = "読み終わると、約2秒の無音で自動判定します。すぐ判定したい時は「読み終わった」を押してください。";
     startMicMeter(stream);
     recorder.start(250);
 
     state.listenTimer = window.setTimeout(() => {
       if (state.listening) stopMobileRecording();
-    }, 12000);
+    }, MOBILE_MAX_RECORDING_MS);
   } catch (error) {
     stopMicMeter();
     setListeningUi(false);
@@ -1346,7 +1348,17 @@ async function startMicMeter(existingStream = null) {
         state.lastVoiceTime = now;
       }
 
-      if (!USE_SERVER_TRANSCRIPTION) {
+      if (USE_SERVER_TRANSCRIPTION) {
+        if (
+          state.listening &&
+          state.speechHeard &&
+          state.mediaRecorder?.state === "recording" &&
+          now - state.lastVoiceTime >= MOBILE_SILENCE_STOP_MS
+        ) {
+          stopMobileRecording();
+          return;
+        }
+      } else {
         const transcript = currentTranscript();
         if (state.listening && state.speechHeard && transcript && now - state.lastVoiceTime > silenceLimitForTranscript(transcript)) {
           state.recognition.stop();
