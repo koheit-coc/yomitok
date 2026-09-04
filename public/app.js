@@ -574,12 +574,9 @@ const QUESTION_SETS = {
   ]
 };
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const MOBILE_SPEECH_MODE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const USE_SERVER_TRANSCRIPTION = MOBILE_SPEECH_MODE;
 const TRANSCRIBE_ENDPOINT = "/api/transcribe";
-const MOBILE_SILENCE_STOP_MS = 2000;
-const MOBILE_MAX_RECORDING_MS = 30000;
+const SILENCE_STOP_MS = 2000;
+const MAX_RECORDING_MS = 30000;
 
 const TERM_READINGS = {
   山: "やま",
@@ -791,10 +788,7 @@ const state = {
   index: 0,
   attempts: 0,
   totalScore: 0,
-  recognition: null,
   listening: false,
-  finalTranscripts: [],
-  interimTranscript: "",
   listenTimer: null,
   audioContext: null,
   analyser: null,
@@ -802,7 +796,7 @@ const state = {
   meterFrame: null,
   voices: [],
   resultApplied: false,
-  discardCurrentRecognition: false,
+  discardCurrentRecording: false,
   autoStartTimer: null,
   speechHeard: false,
   lastVoiceTime: 0,
@@ -830,17 +824,6 @@ const nextButton = document.querySelector("#next-button");
 const changeGradeButton = document.querySelector("#change-grade-button");
 const micStatusEl = document.querySelector("#mic-status");
 const levelBarEl = document.querySelector("#level-bar");
-
-const SPEECH_ERRORS = {
-  "aborted": "音声認識が途中で止まりました。もう一度「聞き取り開始」を押してください。",
-  "audio-capture": "マイクから音を受け取れませんでした。OS やブラウザのマイク設定を確認してください。",
-  "bad-grammar": "音声認識の設定を読み込めませんでした。",
-  "language-not-supported": "このブラウザの音声認識は日本語に対応していません。",
-  "network": "音声認識サービスに接続できませんでした。Codex 内ブラウザでは起きることがあるため、Chrome または Edge でも試してください。",
-  "no-speech": "声が検出されませんでした。ボタンを押してから、少し大きめに読み始めてください。",
-  "not-allowed": "マイクの使用が許可されていません。ブラウザの設定でマイクを許可してください。",
-  "service-not-allowed": "このブラウザでは音声認識サービスの使用が許可されていません。Chrome または Edge で開いてください。"
-};
 
 function normalizeReading(value) {
   return value
@@ -900,7 +883,7 @@ function selectGrade(grade) {
   state.attempts = 0;
   state.totalScore = 0;
   state.resultApplied = false;
-  state.discardCurrentRecognition = false;
+  state.discardCurrentRecording = false;
   gradeLabelEl.textContent = `小学${state.grade}年生の漢字`;
   gradeScreenEl.hidden = true;
   practiceScreenEl.hidden = false;
@@ -910,13 +893,9 @@ function selectGrade(grade) {
 
 function showGradeScreen() {
   cancelAutoStart();
-  if (state.listening) {
-    state.discardCurrentRecognition = true;
-    if (USE_SERVER_TRANSCRIPTION && state.mediaRecorder?.state !== "inactive") {
-      state.mediaRecorder.stop();
-    } else if (state.recognition) {
-      state.recognition.abort();
-    }
+  if (state.listening && state.mediaRecorder?.state !== "inactive") {
+    state.discardCurrentRecording = true;
+    state.mediaRecorder.stop();
   }
   window.speechSynthesis?.cancel();
   stopMicMeter();
@@ -1018,10 +997,8 @@ function resetCurrentAttempt(message) {
   const question = state.questions[state.index];
   renderSentence(question);
   renderWords(question);
-  state.finalTranscripts = [];
-  state.interimTranscript = "";
   state.resultApplied = false;
-  state.discardCurrentRecognition = false;
+  state.discardCurrentRecording = false;
   recognizedEl.textContent = "まだ読んでいません";
   feedbackEl.textContent = message || "文章を読んだら、まちがえた所をここに表示します。";
 }
@@ -1121,10 +1098,10 @@ function extensionForMimeType(type) {
   return "webm";
 }
 
-async function startMobileRecording() {
+async function startRecording() {
   if (state.listening || state.transcribing || practiceScreenEl.hidden) return;
   if (!navigator.mediaDevices?.getUserMedia || !("MediaRecorder" in window)) {
-    feedbackEl.textContent = "このスマホでは録音機能を利用できません。OSとブラウザを最新版にして、もう一度試してください。";
+    feedbackEl.textContent = "このブラウザでは録音機能を利用できません。OSとブラウザを最新版にして、もう一度試してください。";
     return;
   }
 
@@ -1144,7 +1121,7 @@ async function startMobileRecording() {
     state.recordedChunks = [];
     state.recordingMimeType = recorder.mimeType || mimeType || "audio/webm";
     state.resultApplied = false;
-    state.discardCurrentRecognition = false;
+    state.discardCurrentRecording = false;
     state.speechHeard = false;
     state.lastVoiceTime = 0;
 
@@ -1161,7 +1138,7 @@ async function startMobileRecording() {
       stopMicMeter();
       setListeningUi(false);
 
-      if (state.discardCurrentRecognition) {
+      if (state.discardCurrentRecording) {
         setTranscribingUi(false);
         resetCurrentAttempt("語句を確認したので、この問題を最初からやり直しましょう。");
         return;
@@ -1185,8 +1162,8 @@ async function startMobileRecording() {
     recorder.start(250);
 
     state.listenTimer = window.setTimeout(() => {
-      if (state.listening) stopMobileRecording();
-    }, MOBILE_MAX_RECORDING_MS);
+      if (state.listening) stopRecording();
+    }, MAX_RECORDING_MS);
   } catch (error) {
     stopMicMeter();
     setListeningUi(false);
@@ -1197,7 +1174,7 @@ async function startMobileRecording() {
   }
 }
 
-function stopMobileRecording() {
+function stopRecording() {
   window.clearTimeout(state.listenTimer);
   state.listenTimer = null;
   if (!state.mediaRecorder || state.mediaRecorder.state === "inactive") return;
@@ -1246,40 +1223,11 @@ async function transcribeRecordedAudio(audioBlob, mimeType) {
 }
 
 function startListening() {
-  if (USE_SERVER_TRANSCRIPTION) {
-    startMobileRecording();
-    return;
-  }
-  if (!state.recognition || state.listening || state.transcribing || practiceScreenEl.hidden) return;
-  try {
-    state.recognition.start();
-  } catch (error) {
-    feedbackEl.textContent = "聞き取りを開始できませんでした。少し待ってからもう一度押してください。";
-  }
-}
-
-function currentTranscript() {
-  return [...state.finalTranscripts, state.interimTranscript].join(" ").trim();
-}
-
-function readingProgressRatio(transcript) {
-  const question = state.questions[state.index];
-  if (!question || !transcript) return 0;
-  const expectedLength = normalizeReading(question.reading).length;
-  const spokenLength = transcriptToComparableReading(transcript, question).length;
-  return expectedLength ? Math.min(1, spokenLength / expectedLength) : 0;
-}
-
-function silenceLimitForTranscript(transcript) {
-  return readingProgressRatio(transcript) >= 0.8 ? 900 : 3500;
+  startRecording();
 }
 
 function startListeningSoon() {
   cancelAutoStart();
-  if (MOBILE_SPEECH_MODE) {
-    startListening();
-    return;
-  }
   state.autoStartTimer = window.setTimeout(() => {
     state.autoStartTimer = null;
     startListening();
@@ -1348,22 +1296,14 @@ async function startMicMeter(existingStream = null) {
         state.lastVoiceTime = now;
       }
 
-      if (USE_SERVER_TRANSCRIPTION) {
-        if (
-          state.listening &&
-          state.speechHeard &&
-          state.mediaRecorder?.state === "recording" &&
-          now - state.lastVoiceTime >= MOBILE_SILENCE_STOP_MS
-        ) {
-          stopMobileRecording();
-          return;
-        }
-      } else {
-        const transcript = currentTranscript();
-        if (state.listening && state.speechHeard && transcript && now - state.lastVoiceTime > silenceLimitForTranscript(transcript)) {
-          state.recognition.stop();
-          return;
-        }
+      if (
+        state.listening &&
+        state.speechHeard &&
+        state.mediaRecorder?.state === "recording" &&
+        now - state.lastVoiceTime >= SILENCE_STOP_MS
+      ) {
+        stopRecording();
+        return;
       }
       state.meterFrame = requestAnimationFrame(draw);
     };
@@ -1373,119 +1313,23 @@ async function startMicMeter(existingStream = null) {
   }
 }
 
-function finishListening() {
-  window.clearTimeout(state.listenTimer);
-  state.listenTimer = null;
-  stopMicMeter();
-  setListeningUi(false);
-
-  if (state.discardCurrentRecognition) {
-    resetCurrentAttempt("語句を確認したので、この問題を最初からやり直しましょう。");
-    return;
-  }
-
-  const transcript = currentTranscript();
-  if (transcript && !state.resultApplied) {
-    applyResult(transcript);
-  }
-}
-
 function cancelAttemptForWordHelp() {
   cancelAutoStart();
+  if (!state.listening || !state.mediaRecorder) return false;
 
-  if (USE_SERVER_TRANSCRIPTION) {
-    if (!state.listening || !state.mediaRecorder) return false;
-    state.discardCurrentRecognition = true;
-    window.clearTimeout(state.listenTimer);
-    state.listenTimer = null;
-    window.speechSynthesis?.cancel();
-    if (state.mediaRecorder.state !== "inactive") state.mediaRecorder.stop();
-    return true;
-  }
-
-  if (!state.listening || !state.recognition) return false;
-  state.discardCurrentRecognition = true;
+  state.discardCurrentRecording = true;
   window.clearTimeout(state.listenTimer);
-  stopMicMeter();
-  setListeningUi(false);
+  state.listenTimer = null;
   window.speechSynthesis?.cancel();
-  state.recognition.abort();
+  if (state.mediaRecorder.state !== "inactive") state.mediaRecorder.stop();
   return true;
 }
 
-function setupSpeechRecognition() {
-  if (USE_SERVER_TRANSCRIPTION) {
-    return;
-  }
-  if (!SpeechRecognition) {
+function setupRecording() {
+  if (!navigator.mediaDevices?.getUserMedia || !("MediaRecorder" in window)) {
     listenButton.disabled = true;
-    feedbackEl.textContent = "このブラウザは音声認識に対応していません。Chrome または Edge で開いてください。";
-    return;
+    feedbackEl.textContent = "このブラウザでは録音機能を利用できません。Chrome、Edge、Safariなどの最新版で開いてください。";
   }
-
-  state.recognition = new SpeechRecognition();
-  state.recognition.lang = "ja-JP";
-  state.recognition.continuous = !MOBILE_SPEECH_MODE;
-  state.recognition.interimResults = !MOBILE_SPEECH_MODE;
-  state.recognition.maxAlternatives = 1;
-
-  state.recognition.addEventListener("start", () => {
-    setListeningUi(true);
-    state.finalTranscripts = [];
-    state.interimTranscript = "";
-    state.resultApplied = false;
-    state.discardCurrentRecognition = false;
-    recognizedEl.textContent = "聞き取り中...";
-    feedbackEl.textContent = "読み終わったら自動で止まります。すぐ判定したい時は「読み終わった」を押してください。";
-    startMicMeter();
-    state.listenTimer = window.setTimeout(() => {
-      if (state.listening) {
-        state.recognition.stop();
-      }
-    }, 10000);
-  });
-
-  state.recognition.addEventListener("result", (event) => {
-    state.interimTranscript = "";
-    for (let i = event.resultIndex; i < event.results.length; i += 1) {
-      const transcript = event.results[i][0].transcript.trim();
-      if (event.results[i].isFinal) {
-        state.finalTranscripts[i] = transcript;
-      } else {
-        state.interimTranscript += transcript;
-      }
-    }
-    const transcript = currentTranscript();
-    recognizedEl.textContent = transcript || "聞き取り中...";
-    if (transcript) {
-      state.speechHeard = true;
-      state.lastVoiceTime = Date.now();
-    }
-    if (transcript && compareReadings(state.questions[state.index], transcript).perfect) {
-      applyResult(transcript);
-      state.recognition.stop();
-    }
-  });
-
-  state.recognition.addEventListener("error", (event) => {
-    window.clearTimeout(state.listenTimer);
-    stopMicMeter();
-    setListeningUi(false);
-    if (state.discardCurrentRecognition) {
-      resetCurrentAttempt("語句を確認したので、この問題を最初からやり直しましょう。");
-      return;
-    }
-    const transcript = currentTranscript();
-    if (transcript) {
-      applyResult(transcript);
-      return;
-    }
-    feedbackEl.textContent = `${SPEECH_ERRORS[event.error] || "うまく聞き取れませんでした。もう一度試してください。"}（${event.error}）`;
-  });
-
-  state.recognition.addEventListener("end", () => {
-    finishListening();
-  });
 }
 
 listenButton.addEventListener("click", () => {
@@ -1493,30 +1337,22 @@ listenButton.addEventListener("click", () => {
 });
 
 stopButton.addEventListener("click", () => {
-  if (USE_SERVER_TRANSCRIPTION) {
-    stopMobileRecording();
-    return;
-  }
-  if (!state.recognition || !state.listening) return;
-  state.recognition.stop();
+  if (!state.listening) return;
+  stopRecording();
 });
 
 nextButton.addEventListener("click", () => {
   cancelAutoStart();
   window.speechSynthesis?.cancel();
-  if (state.listening) {
-    state.discardCurrentRecognition = true;
-    if (USE_SERVER_TRANSCRIPTION && state.mediaRecorder?.state !== "inactive") {
-      state.mediaRecorder.stop();
-    } else if (state.recognition) {
-      state.recognition.abort();
-    }
+  if (state.listening && state.mediaRecorder?.state !== "inactive") {
+    state.discardCurrentRecording = true;
+    state.mediaRecorder.stop();
   }
   stopMicMeter();
   setListeningUi(false);
   state.index = (state.index + 1) % state.questions.length;
   state.resultApplied = false;
-  state.discardCurrentRecognition = false;
+  state.discardCurrentRecording = false;
   renderQuestion();
   startListeningSoon();
 });
@@ -1548,5 +1384,5 @@ if ("speechSynthesis" in window) {
   window.speechSynthesis.addEventListener("voiceschanged", refreshVoices);
 }
 
-setupSpeechRecognition();
+setupRecording();
 renderGradeButtons();
