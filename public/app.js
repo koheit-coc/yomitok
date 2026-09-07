@@ -812,7 +812,11 @@ const practiceScreenEl = document.querySelector("#practice-screen");
 const gradeButtonsEl = document.querySelector("#grade-buttons");
 const gradeLabelEl = document.querySelector("#grade-label");
 const recognizedEl = document.querySelector("#recognized");
-const feedbackEl = document.querySelector("#feedback");
+const resultStatusCardEl = document.querySelector("#result-status-card");
+const resultStatusEl = document.querySelector("#result-status");
+const resultMessageEl = document.querySelector("#result-message");
+const errorDetailEl = document.querySelector("#error-detail");
+const errorDetailTextEl = document.querySelector("#error-detail-text");
 const scoreEl = document.querySelector("#score");
 const questionCountEl = document.querySelector("#question-count");
 const progressBarEl = document.querySelector("#progress-bar");
@@ -941,6 +945,20 @@ function setResultPanelOpen(isOpen) {
   resultToggleLabelEl.textContent = isOpen ? "閉じる" : "表示";
 }
 
+function setResultState(type, title, message, detail = "") {
+  resultStatusCardEl.classList.remove("neutral", "success", "retry", "error");
+  resultStatusCardEl.classList.add(type);
+  resultStatusEl.textContent = title;
+  resultMessageEl.innerHTML = message;
+  errorDetailTextEl.textContent = detail;
+  errorDetailEl.hidden = !detail;
+}
+
+function showResultError(message, detail = "") {
+  setResultState("error", "⚠ エラー", message, detail);
+  setResultPanelOpen(true);
+}
+
 function closeTermModal() {
   termModalEl.hidden = true;
   document.body.classList.remove("modal-open");
@@ -994,7 +1012,7 @@ function renderQuestion() {
   closeTermModal();
   setResultPanelOpen(false);
   recognizedEl.textContent = "まだ読んでいません";
-  feedbackEl.textContent = "文章を読んだら、まちがえた所をここに表示します。";
+  setResultState("neutral", "まだ判定していません", "文章を読むと、ここに結果を表示します。");
   questionCountEl.textContent = `${state.index + 1} / ${state.questions.length}`;
   progressBarEl.style.width = `${((state.index + 1) / state.questions.length) * 100}%`;
   updateScore();
@@ -1008,7 +1026,11 @@ function resetCurrentAttempt(message) {
   state.resultApplied = false;
   state.discardCurrentRecording = false;
   recognizedEl.textContent = "まだ読んでいません";
-  feedbackEl.textContent = message || "文章を読んだら、まちがえた所をここに表示します。";
+  setResultState(
+    "neutral",
+    "まだ判定していません",
+    message || "文章を読むと、ここに結果を表示します。"
+  );
 }
 
 function compareReadings(question, spokenRaw) {
@@ -1055,9 +1077,15 @@ function applyResult(transcript) {
   state.totalScore += result.percent;
 
   recognizedEl.textContent = transcript || "聞き取れませんでした";
-  feedbackEl.innerHTML = result.perfect
-    ? `よく読めました。正解の読みは「${question.reading}」です。`
-    : `赤い文字のあたりをもう一度練習しよう。<br>${result.html}<br><small>正解: ${question.reading}</small>`;
+  if (result.perfect) {
+    setResultState("success", "○ 正解！", "よく読めました！");
+  } else {
+    setResultState(
+      "retry",
+      "× もう一度！",
+      `赤い文字のところを確認してみよう。<br><span class="reading-compare">${result.html}</span><br><small>正解: ${question.reading}</small>`
+    );
+  }
   updateScore();
   setResultPanelOpen(true);
 }
@@ -1110,8 +1138,10 @@ function extensionForMimeType(type) {
 async function startRecording() {
   if (state.listening || state.transcribing || practiceScreenEl.hidden) return;
   if (!navigator.mediaDevices?.getUserMedia || !("MediaRecorder" in window)) {
-    feedbackEl.textContent = "このブラウザでは録音機能を利用できません。OSとブラウザを最新版にして、もう一度試してください。";
-    setResultPanelOpen(true);
+    showResultError(
+      "このブラウザでは録音機能を利用できません。OSとブラウザを最新版にして、もう一度試してください。",
+      "MediaRecorder または getUserMedia が利用できません。"
+    );
     return;
   }
 
@@ -1157,7 +1187,7 @@ async function startRecording() {
       if (!chunks.length || !speechHeard) {
         setTranscribingUi(false);
         recognizedEl.textContent = "聞き取れませんでした";
-        feedbackEl.textContent = "声が検出されませんでした。もう一度、少し大きめの声で読んでください。";
+        setResultState("retry", "× もう一度！", "声が検出されませんでした。少し大きめの声で読んでみよう。");
         setResultPanelOpen(true);
         return;
       }
@@ -1169,7 +1199,7 @@ async function startRecording() {
     setResultPanelOpen(false);
     setListeningUi(true);
     recognizedEl.textContent = "聞き取り中...";
-    feedbackEl.textContent = "読み終わると、約2秒の無音で自動判定します。すぐ判定したい時は「読み終わった」を押してください。";
+    setResultState("neutral", "聞き取り中…", "読み終わると、約2秒の無音で自動判定します。");
     startMicMeter(stream);
     recorder.start(250);
 
@@ -1180,10 +1210,10 @@ async function startRecording() {
     stopMicMeter();
     setListeningUi(false);
     const name = error?.name || "";
-    feedbackEl.textContent = name === "NotAllowedError"
+    const message = name === "NotAllowedError"
       ? "マイクの使用が許可されていません。ブラウザのサイト設定でマイクを許可してください。"
-      : `録音を開始できませんでした。もう一度試してください。${name ? `（${name}）` : ""}`;
-    setResultPanelOpen(true);
+      : "録音を開始できませんでした。もう一度試してください。";
+    showResultError(message, name || error?.message || "録音開始エラー");
   }
 }
 
@@ -1198,8 +1228,10 @@ function stopRecording() {
     stopMicMeter();
     setListeningUi(false);
     setTranscribingUi(false);
-    feedbackEl.textContent = "録音を終了できませんでした。もう一度試してください。";
-    setResultPanelOpen(true);
+    showResultError(
+      "録音を終了できませんでした。もう一度試してください。",
+      error?.message || error?.name || "録音終了エラー"
+    );
   }
 }
 
@@ -1223,7 +1255,7 @@ async function transcribeRecordedAudio(audioBlob, mimeType) {
     const transcript = String(payload.text || "").trim();
     if (!transcript) {
       recognizedEl.textContent = "聞き取れませんでした";
-      feedbackEl.textContent = "音声は届きましたが、読みを文字にできませんでした。もう一度試してください。";
+      setResultState("retry", "× もう一度！", "音声は届きましたが、読みを文字にできませんでした。もう一度読んでみよう。");
       setResultPanelOpen(true);
       return;
     }
@@ -1231,8 +1263,10 @@ async function transcribeRecordedAudio(audioBlob, mimeType) {
     applyResult(transcript);
   } catch (error) {
     recognizedEl.textContent = "判定できませんでした";
-    feedbackEl.textContent = `音声の判定に失敗しました。${error?.message || "通信状態を確認して、もう一度試してください。"}`;
-    setResultPanelOpen(true);
+    showResultError(
+      "音声の判定に失敗しました。通信状態を確認して、もう一度試してください。",
+      error?.message || error?.name || "文字起こしエラー"
+    );
   } finally {
     setTranscribingUi(false);
   }
@@ -1344,7 +1378,10 @@ function cancelAttemptForWordHelp() {
 function setupRecording() {
   if (!navigator.mediaDevices?.getUserMedia || !("MediaRecorder" in window)) {
     listenButton.disabled = true;
-    feedbackEl.textContent = "このブラウザでは録音機能を利用できません。Chrome、Edge、Safariなどの最新版で開いてください。";
+    showResultError(
+      "このブラウザでは録音機能を利用できません。Chrome、Edge、Safariなどの最新版で開いてください。",
+      "MediaRecorder または getUserMedia が利用できません。"
+    );
   }
 }
 

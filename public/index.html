@@ -71,9 +71,13 @@
             <p class="result-label">認識した読み</p>
             <p id="recognized" class="recognized">まだ読んでいません</p>
           </div>
-          <div>
-            <p class="result-label">フィードバック</p>
-            <p id="feedback" class="feedback">文章を読んだら、まちがえた所をここに表示します。</p>
+          <div id="result-status-card" class="result-status-card neutral" aria-live="polite">
+            <p id="result-status" class="result-status">まだ判定していません</p>
+            <p id="result-message" class="result-message">文章を読むと、ここに結果を表示します。</p>
+            <div id="error-detail" class="error-detail" hidden>
+              <p class="error-detail-label">エラー詳細</p>
+              <p id="error-detail-text" class="error-detail-text"></p>
+            </div>
           </div>
         </div>
       </div>
@@ -92,6 +96,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260906-1"></script>
+    <script src="./app.js?v=20260906-2"></script>
   </body>
 </html>

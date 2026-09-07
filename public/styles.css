@@ -646,3 +646,80 @@ body.modal-open {
     padding: 24px 18px 20px;
   }
 }
+
+/* 2026-09-06: clearer result state and dedicated error details */
+.result-status-card {
+  border-width: 2px !important;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.result-status-card.neutral {
+  border-color: var(--line) !important;
+  background: white !important;
+}
+
+.result-status-card.success {
+  border-color: rgba(29, 139, 91, 0.42) !important;
+  background: rgba(29, 139, 91, 0.07) !important;
+}
+
+.result-status-card.retry {
+  border-color: rgba(217, 93, 116, 0.42) !important;
+  background: rgba(217, 93, 116, 0.07) !important;
+}
+
+.result-status-card.error {
+  border-color: rgba(217, 93, 116, 0.58) !important;
+  background: rgba(217, 93, 116, 0.08) !important;
+}
+
+.result-status {
+  margin: 0 0 8px;
+  font-size: clamp(1.45rem, 5vw, 2rem);
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.result-status-card.success .result-status {
+  color: var(--ok);
+}
+
+.result-status-card.retry .result-status,
+.result-status-card.error .result-status {
+  color: var(--rose);
+}
+
+.result-message {
+  margin: 0;
+  line-height: 1.65;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.reading-compare {
+  display: inline-block;
+  margin: 8px 0 4px;
+  font-size: 1.08rem;
+  letter-spacing: 0.03em;
+}
+
+.error-detail {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(217, 93, 116, 0.34);
+  color: var(--muted);
+}
+
+.error-detail-label {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.error-detail-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
