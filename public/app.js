@@ -816,8 +816,16 @@ const feedbackEl = document.querySelector("#feedback");
 const scoreEl = document.querySelector("#score");
 const questionCountEl = document.querySelector("#question-count");
 const progressBarEl = document.querySelector("#progress-bar");
-const wordListEl = document.querySelector("#word-list");
-const meaningBoxEl = document.querySelector("#meaning-box");
+const resultPanelEl = document.querySelector("#result-panel");
+const resultToggleEl = document.querySelector("#result-toggle");
+const resultToggleLabelEl = document.querySelector("#result-toggle-label");
+const termModalEl = document.querySelector("#term-modal");
+const termBackdropEl = document.querySelector("#term-backdrop");
+const termCloseEl = document.querySelector("#term-close");
+const termTitleEl = document.querySelector("#term-title");
+const termReadingEl = document.querySelector("#term-reading");
+const termMeaningEl = document.querySelector("#term-meaning");
+const termSpeechNoteEl = document.querySelector("#term-speech-note");
 const listenButton = document.querySelector("#listen-button");
 const stopButton = document.querySelector("#stop-button");
 const nextButton = document.querySelector("#next-button");
@@ -898,6 +906,7 @@ function showGradeScreen() {
     state.mediaRecorder.stop();
   }
   window.speechSynthesis?.cancel();
+  closeTermModal();
   stopMicMeter();
   setListeningUi(false);
   practiceScreenEl.hidden = true;
@@ -926,18 +935,15 @@ function renderSentence(question) {
   sentenceEl.replaceChildren(fragment);
 }
 
-function renderWords(question) {
-  wordListEl.innerHTML = "";
-  Object.entries(question.terms).forEach(([term, meaning]) => {
-    const button = document.createElement("button");
-    button.className = "word-button";
-    button.type = "button";
-    button.textContent = term;
-    button.dataset.term = term;
-    button.dataset.meaning = meaning;
-    wordListEl.append(button);
-  });
-  meaningBoxEl.textContent = "語句をタップすると、意味がここに出ます。";
+function setResultPanelOpen(isOpen) {
+  resultPanelEl.classList.toggle("open", isOpen);
+  resultToggleEl.setAttribute("aria-expanded", String(isOpen));
+  resultToggleLabelEl.textContent = isOpen ? "閉じる" : "表示";
+}
+
+function closeTermModal() {
+  termModalEl.hidden = true;
+  document.body.classList.remove("modal-open");
 }
 
 function showMeaning(term) {
@@ -945,12 +951,15 @@ function showMeaning(term) {
   const meaning = question.terms[term];
   if (!meaning) return;
 
-  const reading = TERM_READINGS[term];
-  meaningBoxEl.innerHTML = `<strong>${term}</strong>${reading ? `（${reading}）` : ""}<br>${meaning}`;
-  document.querySelectorAll(".word-button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.term === term);
-  });
-  speakTerm(reading || term);
+  const reading = TERM_READINGS[term] || term;
+  termTitleEl.textContent = term;
+  termReadingEl.textContent = `読み：${reading}`;
+  termMeaningEl.textContent = meaning;
+  termSpeechNoteEl.hidden = "speechSynthesis" in window;
+  termModalEl.hidden = false;
+  document.body.classList.add("modal-open");
+  termCloseEl.focus({ preventScroll: true });
+  speakTerm(reading);
 }
 
 function refreshVoices() {
@@ -965,10 +974,7 @@ function findJapaneseVoice() {
 }
 
 function speakTerm(term) {
-  if (!("speechSynthesis" in window)) {
-    meaningBoxEl.innerHTML += "<br><small>このブラウザは読み上げに対応していません。</small>";
-    return;
-  }
+  if (!("speechSynthesis" in window)) return;
 
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(term);
@@ -985,7 +991,8 @@ function renderQuestion() {
   const question = state.questions[state.index];
   if (!question) return;
   renderSentence(question);
-  renderWords(question);
+  closeTermModal();
+  setResultPanelOpen(false);
   recognizedEl.textContent = "まだ読んでいません";
   feedbackEl.textContent = "文章を読んだら、まちがえた所をここに表示します。";
   questionCountEl.textContent = `${state.index + 1} / ${state.questions.length}`;
@@ -996,7 +1003,8 @@ function renderQuestion() {
 function resetCurrentAttempt(message) {
   const question = state.questions[state.index];
   renderSentence(question);
-  renderWords(question);
+  closeTermModal();
+  setResultPanelOpen(false);
   state.resultApplied = false;
   state.discardCurrentRecording = false;
   recognizedEl.textContent = "まだ読んでいません";
@@ -1051,6 +1059,7 @@ function applyResult(transcript) {
     ? `よく読めました。正解の読みは「${question.reading}」です。`
     : `赤い文字のあたりをもう一度練習しよう。<br>${result.html}<br><small>正解: ${question.reading}</small>`;
   updateScore();
+  setResultPanelOpen(true);
 }
 
 function setListeningUi(isListening) {
@@ -1102,6 +1111,7 @@ async function startRecording() {
   if (state.listening || state.transcribing || practiceScreenEl.hidden) return;
   if (!navigator.mediaDevices?.getUserMedia || !("MediaRecorder" in window)) {
     feedbackEl.textContent = "このブラウザでは録音機能を利用できません。OSとブラウザを最新版にして、もう一度試してください。";
+    setResultPanelOpen(true);
     return;
   }
 
@@ -1148,6 +1158,7 @@ async function startRecording() {
         setTranscribingUi(false);
         recognizedEl.textContent = "聞き取れませんでした";
         feedbackEl.textContent = "声が検出されませんでした。もう一度、少し大きめの声で読んでください。";
+        setResultPanelOpen(true);
         return;
       }
 
@@ -1155,6 +1166,7 @@ async function startRecording() {
       await transcribeRecordedAudio(audioBlob, mime);
     });
 
+    setResultPanelOpen(false);
     setListeningUi(true);
     recognizedEl.textContent = "聞き取り中...";
     feedbackEl.textContent = "読み終わると、約2秒の無音で自動判定します。すぐ判定したい時は「読み終わった」を押してください。";
@@ -1171,6 +1183,7 @@ async function startRecording() {
     feedbackEl.textContent = name === "NotAllowedError"
       ? "マイクの使用が許可されていません。ブラウザのサイト設定でマイクを許可してください。"
       : `録音を開始できませんでした。もう一度試してください。${name ? `（${name}）` : ""}`;
+    setResultPanelOpen(true);
   }
 }
 
@@ -1186,6 +1199,7 @@ function stopRecording() {
     setListeningUi(false);
     setTranscribingUi(false);
     feedbackEl.textContent = "録音を終了できませんでした。もう一度試してください。";
+    setResultPanelOpen(true);
   }
 }
 
@@ -1210,6 +1224,7 @@ async function transcribeRecordedAudio(audioBlob, mimeType) {
     if (!transcript) {
       recognizedEl.textContent = "聞き取れませんでした";
       feedbackEl.textContent = "音声は届きましたが、読みを文字にできませんでした。もう一度試してください。";
+      setResultPanelOpen(true);
       return;
     }
 
@@ -1217,6 +1232,7 @@ async function transcribeRecordedAudio(audioBlob, mimeType) {
   } catch (error) {
     recognizedEl.textContent = "判定できませんでした";
     feedbackEl.textContent = `音声の判定に失敗しました。${error?.message || "通信状態を確認して、もう一度試してください。"}`;
+    setResultPanelOpen(true);
   } finally {
     setTranscribingUi(false);
   }
@@ -1331,6 +1347,17 @@ function setupRecording() {
     feedbackEl.textContent = "このブラウザでは録音機能を利用できません。Chrome、Edge、Safariなどの最新版で開いてください。";
   }
 }
+
+resultToggleEl.addEventListener("click", () => {
+  setResultPanelOpen(!resultPanelEl.classList.contains("open"));
+});
+
+termCloseEl.addEventListener("click", closeTermModal);
+termBackdropEl.addEventListener("click", closeTermModal);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !termModalEl.hidden) closeTermModal();
+});
 
 listenButton.addEventListener("click", () => {
   startListening();

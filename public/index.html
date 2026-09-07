@@ -58,7 +58,15 @@
           </div>
         </div>
 
-        <section class="result-grid" aria-label="結果">
+      </section>
+
+      <section id="result-panel" class="result-panel" aria-label="結果">
+      <button id="result-toggle" class="result-toggle" type="button" aria-expanded="false" aria-controls="result-content">
+        <span>結果</span>
+        <span id="result-toggle-label" class="result-toggle-label">表示</span>
+      </button>
+      <div id="result-content" class="result-content">
+        <div class="result-grid">
           <div>
             <p class="result-label">認識した読み</p>
             <p id="recognized" class="recognized">まだ読んでいません</p>
@@ -67,21 +75,23 @@
             <p class="result-label">フィードバック</p>
             <p id="feedback" class="feedback">文章を読んだら、まちがえた所をここに表示します。</p>
           </div>
-        </section>
+        </div>
+      </div>
       </section>
-
-      <aside class="side-panel" aria-label="語句の意味">
-        <div class="side-heading">
-          <p class="eyebrow">タップで確認</p>
-          <h2>むずかしい語句</h2>
-        </div>
-        <div id="word-list" class="word-list"></div>
-        <div id="meaning-box" class="meaning-box">
-          語句をタップすると、意味がここに出ます。
-        </div>
-      </aside>
     </main>
 
-    <script src="./app.js?v=20260904-1"></script>
+    <div id="term-modal" class="term-modal" hidden>
+      <button id="term-backdrop" class="term-backdrop" type="button" aria-label="語句の説明を閉じる"></button>
+      <section class="term-dialog" role="dialog" aria-modal="true" aria-labelledby="term-title">
+        <button id="term-close" class="term-close" type="button" aria-label="閉じる">×</button>
+        <p class="term-dialog-label">語句の読みと意味</p>
+        <h2 id="term-title" class="term-title"></h2>
+        <p id="term-reading" class="term-reading"></p>
+        <p id="term-meaning" class="term-meaning"></p>
+        <p id="term-speech-note" class="term-speech-note" hidden>このブラウザは読み上げに対応していません。</p>
+      </section>
+    </div>
+
+    <script src="./app.js?v=20260906-1"></script>
   </body>
 </html>
