@@ -829,6 +829,7 @@ const termSpeechNoteEl = document.querySelector("#term-speech-note");
 const listenButton = document.querySelector("#listen-button");
 const stopButton = document.querySelector("#stop-button");
 const nextButton = document.querySelector("#next-button");
+const resultNextButton = document.querySelector("#result-next-button");
 const changeGradeButton = document.querySelector("#change-grade-button");
 const micStatusEl = document.querySelector("#mic-status");
 const levelBarEl = document.querySelector("#level-bar");
@@ -1059,6 +1060,7 @@ function applyResult(transcript) {
     ? `よく読めました。正解の読みは「${question.reading}」です。`
     : `赤い文字のあたりをもう一度練習しよう。<br>${result.html}<br><small>正解: ${question.reading}</small>`;
   updateScore();
+  resultNextButton.hidden = !result.perfect;
   setResultPanelOpen(true);
 }
 
