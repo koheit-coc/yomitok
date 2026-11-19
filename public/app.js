@@ -1140,8 +1140,6 @@ async function startRecording() {
     });
 
     recorder.addEventListener("stop", async () => {
-      alert("DEBUG: MediaRecorder stopイベント発生");
-
       const chunks = state.recordedChunks.slice();
       const mime = state.recordingMimeType || "audio/webm";
       const speechHeard = state.speechHeard;
